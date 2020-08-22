@@ -2,12 +2,20 @@
 <html>
     <head>
         <title>15 Exam Screensharing extension popup</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
         <script src="popup.js"></script>
+        <style>
+            .container{width: 300px}
+        </style>
     </head>
     <body>
-        <h5>press the button to share your screen when you ready</h2>
-        <video id="camCapture" autoplay ></video>
-        <video id="screenCapture" autoplay ></video>
-        <button id="startRecord">Start Record</button>
+        <div class="container">
+            <h5>press the button to share your screen when you ready</h2>
+            <div class="row">
+                <div class="col-xs-6 embed-responsive embed-responsive-16by9"><video id="camCapture" autoplay ></video></div>
+                <div class="col-xs-6 embed-responsive embed-responsive-16by9"><video id="screenCapture" autoplay ></video></div>
+            </div>
+            <button id="startRecord" class="btn btn-primary">Start Record</button>
+        </div>
     </body>
 </html>

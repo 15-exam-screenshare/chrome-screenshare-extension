@@ -15,5 +15,6 @@
         "activeTab",
         "desktopCapture",
         "tabs"
-    ]
+    ],
+    "content_security_policy": "script-src 'self' https://stackpath.bootstrapcdn.com; object-src 'self'"
 }
