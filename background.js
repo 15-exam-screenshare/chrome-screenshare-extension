@@ -1,5 +1,4 @@
-const { stringLiteral } = require("@babel/types");
-
+;
 var isRecording = false;
 var currentStream = null;
 
