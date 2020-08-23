@@ -1,3 +1,8 @@
+const { stringLiteral } = require("@babel/types");
+
+var isRecording = false;
+var currentStream = null;
+
 // 설치 확인
 chrome.runtime.onInstalled.addListener(() => {
   console.log('HB Exam Helper is Installed');
@@ -5,12 +10,24 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // popup 연결
-chrome.extension.onConnect.addListener((port) => {
-  console.log('connected');
-  port.onMessage.addListener((msg) => {
-    console.log('message from popup:', msg);
+chrome.extension.onConnect.addListener((port) => {  
+  // 현재 상태를 팝업에 반영
+  console.log('current state', isRecording);
+  if (isRecording){
+    port.postMessage({'state':'isRecordingTrue'});
+    showStream(currentStream);
+  }
 
-    chrome.desktopCapture.chooseDesktopMedia(['screen'], onAccessApproved);
+  /* popup에서 startRecord를 누르면 메시지 패싱을 받아 이 함수가 수행됨 */
+  port.onMessage.addListener((msg) => {
+    /* msg의 값은 ['action': 'startRecord'] 
+      이후, ['action': 'stopRecord']도 보낼 것임 */
+    console.log('message from popup:', msg);
+    
+    if (msg['action'] === 'startRecord'){
+      chrome.desktopCapture.chooseDesktopMedia(['screen'], onAccessApproved);
+    }
+    
   });
 });
 
@@ -20,6 +37,7 @@ function onAccessApproved(id, options) {
     console.log('Access Denied');
     return;
   }
+  isRecording = true;
 
   var audioConstraint = {
     mandatory: {
@@ -50,8 +68,20 @@ function onAccessApproved(id, options) {
 function getUserMediaError(error) {
   console.log('navigator.webkitGetUserMedia() errot: ', error);
 }
-function gotStream(stream) {
+
+function gotStream(stream){
+  // 스트림 중지 동작 등록
+  stream.onended = () => {
+    isRecording = false;
+    currentStream = null;
+  }
+  showStream(stream);
+}
+
+function showStream(stream) {
   console.log('Received local stream', stream);
+  currentStream = stream;
+
   var views = chrome.extension.getViews({type:'popup'});
   for (var i=0; i<views.length; i++){
       var video = views[i].document.getElementById('screenCapture');
