@@ -1,46 +1,51 @@
-;
-var isRecording = false;
-var currentStream = null;
+var isScreenShared = false;
+var currentScreenStream = null;
 
 // 설치 확인
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('HB Exam Helper is Installed');
+  console.log("HB Exam Helper is Installed");
   // 서버 등록
 });
 
-// popup 연결
-chrome.extension.onConnect.addListener((port) => {  
-  // 현재 상태를 팝업에 반영
-  console.log('current state', isRecording);
-  if (isRecording){
-    port.postMessage({'state':'isRecordingTrue'});
-    showStream(currentStream);
+// initialize popup
+chrome.extension.onConnect.addListener((port) => {
+  console.log('popup connected', port);
+
+  // The current state is going to be reflected in the popup page
+  console.log('isScreenShared', isScreenShared)
+  if (isScreenShared && currentScreenStream.isActive) {
+    
+    port.postMessage({ type: "screenShare", isActive: true });
+    showScreenStream(currentScreenStream);
   }
 
-  /* popup에서 startRecord를 누르면 메시지 패싱을 받아 이 함수가 수행됨 */
+  /* invoke the required function according to the type of message */
   port.onMessage.addListener((msg) => {
-    /* msg의 값은 ['action': 'startRecord'] 
-      이후, ['action': 'stopRecord']도 보낼 것임 */
-    console.log('message from popup:', msg);
-    
-    if (msg['action'] === 'startRecord'){
-      chrome.desktopCapture.chooseDesktopMedia(['screen'], onAccessApproved);
-    }
-    
+    console.log("message from popup:", msg);
+
+    if (msg["type"] === "screenShare") onScreenCaptureCommand(msg["action"]);
+    else if (msg["type"] === "camShare") onCamCaptureCommand(msg["action"]);
   });
 });
-
+function onScreenCaptureCommand(action) {
+  if (action === "start")
+    chrome.desktopCapture.chooseDesktopMedia(["screen"], onAccessApproved);
+  else {
+    // TODO: show some notices.
+    currentScreenStream.getTracks().forEach((track) => track.stop());
+  }
+}
 // 캡쳐 승인됨
 function onAccessApproved(id, options) {
   if (!id) {
-    console.log('Access Denied');
+    console.log("Access Denied");
     return;
   }
-  isRecording = true;
+  isScreenShared = true;
 
   var audioConstraint = {
     mandatory: {
-      chromeMediaSource: 'desktop',
+      chromeMediaSource: "desktop",
       chromeMediaSourceId: id,
     },
   };
@@ -52,47 +57,52 @@ function onAccessApproved(id, options) {
       audio: audioConstraint,
       video: {
         mandatory: {
-          chromeMediaSource: 'desktop',
+          chromeMediaSource: "desktop",
           chromeMediaSourceId: id,
           maxWidth: screen.width,
           maxHeight: screen.height,
         },
       },
     },
-    gotStream,
+    gotScreenStream,
     getUserMediaError
   );
 }
 
 function getUserMediaError(error) {
-  console.log('navigator.webkitGetUserMedia() errot: ', error);
+  console.log("navigator.webkitGetUserMedia() errot: ", error);
 }
 
-function gotStream(stream){
+function gotScreenStream(screenStream) {
   // 스트림 중지 동작 등록
-  stream.onended = () => {
-    isRecording = false;
-    currentStream = null;
-  }
-  showStream(stream);
+  screenStream.onended = () => {
+    isScreenShared = false;
+    currentScreenStream = null;
+  };
+  showScreenStream(screenStream);
 }
 
-function showStream(stream) {
-  console.log('Received local stream', stream);
-  currentStream = stream;
+function showScreenStream(screenStream) {
+  console.log("Received local ScreenStream", screenStream);
+  currentScreenStream = screenStream;
 
-  var views = chrome.extension.getViews({type:'popup'});
-  for (var i=0; i<views.length; i++){
-      var video = views[i].document.getElementById('screenCapture');
-      console.log('video');
-      try {
-        video.srcObject = stream;
-      } catch (error) {
-        console.log(error);
-        video.src = URL.createObjectURL(stream);
-      }
-      stream.onended = function () {
-        console.log('Ended');
-      };
+  var views = chrome.extension.getViews({ type: "popup" });
+  for (var i = 0; i < views.length; i++) {
+    var video = views[i].document.getElementById("screenCapture");
+    console.log("video");
+    try {
+      video.srcObject = screenStream;
+      chrome.runtime.sendMessage({ type: "screenShare", isActive: true });
+      //        extensionPort.postMessage({'type': 'screenShare', 'isActive': true});
+      console.log("sent");
+    } catch (error) {
+      console.log(error);
+      video.src = URL.createObjectURL(screenStream);
+    }
+    screenStream.onended = function () {
+      console.log("Ended");
+      isScreenShared = false;
+      extensionPort.postMessage({ type: "screenShare", isActive: false });
+    };
   }
 }

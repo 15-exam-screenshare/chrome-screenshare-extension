@@ -1,36 +1,62 @@
-var isRecording = false;
+var isScreenShareing = false;
+var isCamShareing = false;
 
-// message pass 준비
+// connect message pass
 var port = chrome.extension.connect({
-  name: "Sample Connection from popup",
+  name: "Connection with Popup",
 });
 
-// message pass 수신
-port.onMessage.addListener((msg) => {
-  console.log("message from backgroun:", msg);
-
+chrome.runtime.onMessage.addListener((msg) => {
+  console.log("runtime", msg);
   // background.js에 저장된 상태 반영
-  if (msg['state'] === 'isRecordingTrue'){
-    isRecording = true;
+  if (msg["type"] === "screenShare") {
+    isScreenShareing = msg["isActive"];
+    if (btnScreenShare != null){
+      console.log("btnScreenShare is not null");
+      btnScreenShare.innerHTML = btnScreenShareText[!isScreenShareing];
     }
-});
+  }
 
+  if (msg["type"] === "camShare") {
+    isCamShareing = msg["isActive"];
+    if (btnCamShare != null)
+      btnCamShare.innerHTML = btnCamShareText[!isCamShareing];
+  }
+});
 /// init
 /* html이 모두 로드되고 실행되는 부분 */
 window.onload = init;
+var btnScreenShare = null;
+var btnCamShare = null;
+var btnScreenShareText = {
+  true: "Start Sharing Screen",
+  false: "Stop Sharing Screen",
+};
+var btnCamShareText = {
+  true: "Start Sharing Cam",
+  false: "Stop Sharing Cam",
+};
+
 function init() {
-  /* startRecord 버튼에 대해 리스너가 부여됨 */
+  btnScreenShare = document.querySelector("#btn_screen_share");
+  btnCamShare = document.querySelector("#btn_cam_share");
 
+  btnCamShare.addEventListener("click", onBtnCamShare);
+  btnScreenShare.addEventListener("click", onBtnScreenShare);
 
-  var recordBtn = document.querySelector("#startRecord");
-  if (isRecording){
-      recordBtn.innerHTML = 'stop';
-  }
-    recordBtn.addEventListener("click", onClickStartRecord);
+  btnScreenShare.innerHTML = btnCamShareText[!isScreenShareing];
+  btnCamShare.innerHTML = btnCamShareText[!isScreenShareing];
 }
 
-/* start Record 버튼 누르면 실행됨*/
-function onClickStartRecord(event) {
-  /* 미리 지정한 포트(background.js)로 메시지를 보냄 */
-  port.postMessage({ action: "startRecord" });
+function onBtnScreenShare(event) {
+  console.log("onBtnScreenShare, currentShare:", isScreenShareing);
+  if (isScreenShareing)
+    port.postMessage({ type: "screenShare", action: "stop" });
+  else port.postMessage({ type: "screenShare", action: "start" });
+}
+
+function onBtnCamShare(event) {
+  console.log("onBtnCamShare, currentShare:", isCamShareing);
+  if (isCamShareing) port.postMessage({ type: "camShare", action: "stop" });
+  else port.postMessage({ type: "camShare", action: "start" });
 }
