@@ -1,4 +1,3 @@
-var isScreenShared = false;
 var currentScreenStream = null;
 
 // 설치 확인
@@ -12,8 +11,7 @@ chrome.extension.onConnect.addListener((port) => {
   console.log('popup connected', port);
 
   // The current state is going to be reflected in the popup page
-  console.log('isScreenShared', isScreenShared)
-  if (isScreenShared && currentScreenStream.isActive) {
+  if (currentScreenStream != null && currentScreenStream.isActive) {
     
     port.postMessage({ type: "screenShare", isActive: true });
     showScreenStream(currentScreenStream);
@@ -41,7 +39,6 @@ function onAccessApproved(id, options) {
     console.log("Access Denied");
     return;
   }
-  isScreenShared = true;
 
   var audioConstraint = {
     mandatory: {
@@ -76,7 +73,6 @@ function getUserMediaError(error) {
 function gotScreenStream(screenStream) {
   // 스트림 중지 동작 등록
   screenStream.onended = () => {
-    isScreenShared = false;
     currentScreenStream = null;
   };
   showScreenStream(screenStream);
@@ -93,7 +89,6 @@ function showScreenStream(screenStream) {
     try {
       video.srcObject = screenStream;
       chrome.runtime.sendMessage({ type: "screenShare", isActive: true });
-      //        extensionPort.postMessage({'type': 'screenShare', 'isActive': true});
       console.log("sent");
     } catch (error) {
       console.log(error);
@@ -101,8 +96,16 @@ function showScreenStream(screenStream) {
     }
     screenStream.onended = function () {
       console.log("Ended");
-      isScreenShared = false;
       extensionPort.postMessage({ type: "screenShare", isActive: false });
     };
+  }
+}
+
+function onCamCaptureCommand(action){
+  if (action === "start"){
+
+  }else {
+    // TODO: show some notices.
+    currentScreenStream.getTracks().forEach((track) => track.stop());
   }
 }
