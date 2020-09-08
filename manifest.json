@@ -1,20 +1,19 @@
 {
-    "manifest_version": 2,
-    "name": "15 Exam ScreenShare",
-    "version": "0.2",
-    "description": "This app let you share your screen with exam directors.",
-    "author": "JS Hwang email@email.com, SJ Bae email@email.com",
-    "browser_action":{
-        "default_popup": "popup.html"
-    },
-    "background": {
-        "scripts": ["background.js"],
-        "persistent": true
-    },
-    "permissions": [
-        "activeTab",
-        "desktopCapture",
-        "tabs"
-    ],
-    "content_security_policy": "script-src 'self' https://stackpath.bootstrapcdn.com; object-src 'self'"
+  "name": "alert",
+  "version": "1",
+  "browser_action": {
+    "default_title": "alert"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+    }
+  ],	
+  "permissions": ["activeTab", "tabs"],
+  "manifest_version": 2
 }
